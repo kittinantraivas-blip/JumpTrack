@@ -9,7 +9,7 @@ nav {
 }
 
 nav > img {
-    width: 60px;
+    width: 40px;
 }
 
 #connection-status {
@@ -37,8 +37,8 @@ main {
 }
 
 main > img {
-    width: 40vw;
-    max-width: 200px;
+    width: 100vw;
+    max-width: 300px;
 }
 
 #enable-container {

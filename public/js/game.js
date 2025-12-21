@@ -11,10 +11,10 @@ const ctx = canvas.getContext("2d")
 
 // Load images
 const playerImg = new Image();
-playerImg.src = 'img/player.svg';  // ใส่ path รูป player ของคุณ
+playerImg.src = 'img/Asset 1.png';  // ใส่ path รูป player ของคุณ
 
 const obstacleImg = new Image();
-obstacleImg.src = 'img/obstacle.svg';  // ใส่ path รูป obstacle ของคุณ
+obstacleImg.src = 'img/Asset 2.png';  // ใส่ path รูป obstacle ของคุณ
 
 // Fallback colors if images fail to load
 const colors = {
@@ -59,13 +59,17 @@ function drawObstacle(obstacle) {
     // Check if image is loaded
     if (obstacleImg.complete && obstacleImg.naturalWidth !== 0) {
         // Top obstacle
+        ctx.save();
+        ctx.translate(obstacle.posX, obstacle.spaceTop);
+        ctx.scale(1, -1);
         ctx.drawImage(
-            obstacleImg, 
-            obstacle.posX, 
-            0, 
-            player.width, 
+            obstacleImg,
+            0,
+            0,
+            player.width,
             obstacle.spaceTop
         );
+        ctx.restore();
         
         // Bottom obstacle
         ctx.drawImage(
