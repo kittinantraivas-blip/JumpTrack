@@ -42,6 +42,21 @@ io.on("connection", (socket) => {
         }
     })
 
+    // ===== Telemetry for threshold tuning =====
+    // controller (phone) ส่งค่า mag/state มา server log ออก stdout
+    // ให้ดูคลื่นความเร่ง real-time ขณะกระโดด เพื่อจูน threshold
+    socket.on("telemetry", (d) => {
+        if (d.event) {
+            console.log(
+                `[TELEM] *** ${d.event} ***  mag=${d.mag}\traw=${d.rawMag}\tstate=${d.state}`
+            )
+        } else {
+            console.log(
+                `[TELEM] mag=${d.mag}\traw=${d.rawMag}\tstate=${d.state}`
+            )
+        }
+    })
+
     socket.on("disconnect", () => {
         const partnerSocketId = pairs.get(socket.id)
         if (partnerSocketId) {

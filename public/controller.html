@@ -31,5 +31,25 @@
         <div id="enable-container">
             <button id="enable-btn">Enable Jump Detection</button>
         </div>
+
+        <div
+            id="debug-overlay"
+            style="
+                position: fixed;
+                bottom: 8px;
+                left: 8px;
+                z-index: 9999;
+                font-family: monospace;
+                font-size: 14px;
+                line-height: 1.5;
+                color: #0f0;
+                background: rgba(0, 0, 0, 0.75);
+                padding: 8px 12px;
+                border-radius: 8px;
+                pointer-events: none;
+            "
+        >
+            waiting for motion…
+        </div>
     </body>
 </html>

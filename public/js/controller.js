@@ -124,6 +124,23 @@ function triggerJump() {
     }
 }
 
+// ===== Telemetry: ส่งค่า mag/state กลับ server เพื่อจูน threshold =====
+let lastTelemetryTime = 0
+const TELEMETRY_MS = 50 // ส่งต่อเนื่อง ~20Hz; event สำคัญส่งทันที
+function sendTelemetry(rawMag, mag, state, event) {
+    const now = Date.now()
+    if (event || now - lastTelemetryTime > TELEMETRY_MS) {
+        lastTelemetryTime = now
+        socket.emit("telemetry", {
+            rawMag: +rawMag.toFixed(2),
+            mag: +mag.toFixed(2),
+            state,
+            event: event || "",
+        })
+    }
+    updateDebugOverlay(rawMag, mag, state, event)
+}
+
 function handleMotionEvent(e) {
     // ใช้ accelerationIncludingGravity เพื่อจับเฟส "ตกอิสระ" (mag เข้าใกล้ 0)
     // ตอนนิ่ง mag จะ ~9.8, ตอนกระโดดออกตัว/ลงพื้นจะพุ่งสูง, ตอนลอยจะดิ่งต่ำ
@@ -137,10 +154,12 @@ function handleMotionEvent(e) {
     const mag = filteredMag
 
     const now = Date.now()
+    let event = ""
 
     // reset rule: ถ้าค้างนานเกินไปไม่เจอ event ให้กลับสู่ ground
     if (now - lastEventTime > RESET_MS && jumpState !== "ground") {
         jumpState = "ground"
+        event = "reset"
     }
 
     switch (jumpState) {
@@ -151,6 +170,7 @@ function handleMotionEvent(e) {
                 lastEventTime = now
                 lastTriggerTime = now
                 triggerJump()
+                event = "TRIGGER (takeoff)"
             }
             break
 
@@ -159,19 +179,45 @@ function handleMotionEvent(e) {
             if (mag < VALLEY_THRESHOLD) {
                 jumpState = "air"
                 lastEventTime = now
+                event = "valley (in-air)"
             } else if (mag > PEAK_THRESHOLD) {
                 lastEventTime = now // ยังพุ่งอยู่ คง state
             }
             break
 
         case "air":
-            // รอ peak ลงพื้น -> จบ 1 รอบการกระโดด กลับสู่ ground
+            // รอ peak ลงพื้น -> เข้าเฟส landing (ยังไม่ re-arm)
             if (mag > PEAK_THRESHOLD) {
+                jumpState = "landing"
+                lastEventTime = now
+                lastTriggerTime = now // เริ่ม refractory กันนับซ้ำ
+                event = "land (impact)"
+            }
+            break
+
+        case "landing":
+            // *** จุดแก้บั๊ก: peak ตอนลงพื้นค้างสูงหลายเฟรม ***
+            // ต้องรอให้ mag กลับลงต่ำกว่า PEAK + ผ่าน refractory ก่อน
+            // ค่อย re-arm เป็น ground ป้องกันนับการลงพื้นเป็นกระโดดใหม่
+            if (mag < PEAK_THRESHOLD && now - lastTriggerTime > REFRACTORY_MS) {
                 jumpState = "ground"
                 lastEventTime = now
+                event = "settled (re-arm)"
             }
             break
     }
+
+    sendTelemetry(rawMag, mag, jumpState, event)
+}
+
+function updateDebugOverlay(rawMag, mag, state, event) {
+    const el = document.getElementById("debug-overlay")
+    if (!el) return
+    el.innerHTML =
+        `mag: <b>${mag.toFixed(2)}</b>  (raw ${rawMag.toFixed(2)})<br>` +
+        `state: <b>${state}</b><br>` +
+        `PEAK ${PEAK_THRESHOLD} / VALLEY ${VALLEY_THRESHOLD}` +
+        (event ? `<br><span style="color:#ffd24a">${event}</span>` : "")
 }
 
 function enableMotionDetection() {
